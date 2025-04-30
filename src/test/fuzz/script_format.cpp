@@ -11,13 +11,14 @@
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
 #include <univalue.h>
+#include <util/chaintype.h>
 
 void initialize_script_format()
 {
-    SelectParams(CBaseChainParams::REGTEST);
+    SelectParams(ChainType::REGTEST);
 }
 
-FUZZ_TARGET_INIT(script_format, initialize_script_format)
+FUZZ_TARGET(script_format, .init = initialize_script_format)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     const CScript script{ConsumeScript(fuzzed_data_provider)};
@@ -29,7 +30,7 @@ FUZZ_TARGET_INIT(script_format, initialize_script_format)
     (void)ScriptToAsmStr(script, /*fAttemptSighashDecode=*/fuzzed_data_provider.ConsumeBool());
 
     UniValue o1(UniValue::VOBJ);
-    ScriptPubKeyToUniv(script, o1, /*include_hex=*/fuzzed_data_provider.ConsumeBool());
-    UniValue o3(UniValue::VOBJ);
-    ScriptToUniv(script, o3);
+    auto include_hex = fuzzed_data_provider.ConsumeBool();
+    auto include_address = fuzzed_data_provider.ConsumeBool();
+    ScriptToUniv(script, /*out=*/o1, include_hex, include_address);
 }

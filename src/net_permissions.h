@@ -1,8 +1,9 @@
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <netaddress.h>
+#include <netbase.h>
 
 #include <string>
 #include <type_traits>
@@ -14,6 +15,11 @@
 struct bilingual_str;
 
 extern const std::vector<std::string> NET_PERMISSIONS_DOC;
+
+/** Default for -whitelistrelay. */
+constexpr bool DEFAULT_WHITELISTRELAY = true;
+/** Default for -whitelistforcerelay. */
+constexpr bool DEFAULT_WHITELISTFORCERELAY = false;
 
 enum class NetPermissionFlags : uint32_t {
     None = 0,
@@ -35,13 +41,14 @@ enum class NetPermissionFlags : uint32_t {
     // unlimited amounts of addrs.
     Addr = (1U << 7),
 
-    // True if the user did not specifically set fine grained permissions
+    // True if the user did not specifically set fine-grained permissions with
+    // the -whitebind or -whitelist configuration options.
     Implicit = (1U << 31),
     All = BloomFilter | ForceRelay | Relay | NoBan | Mempool | Download | Addr,
 };
 static inline constexpr NetPermissionFlags operator|(NetPermissionFlags a, NetPermissionFlags b)
 {
-    using t = typename std::underlying_type<NetPermissionFlags>::type;
+    using t = std::underlying_type_t<NetPermissionFlags>;
     return static_cast<NetPermissionFlags>(static_cast<t>(a) | static_cast<t>(b));
 }
 
@@ -52,7 +59,7 @@ public:
     static std::vector<std::string> ToStrings(NetPermissionFlags flags);
     static inline bool HasFlag(NetPermissionFlags flags, NetPermissionFlags f)
     {
-        using t = typename std::underlying_type<NetPermissionFlags>::type;
+        using t = std::underlying_type_t<NetPermissionFlags>;
         return (static_cast<t>(flags) & static_cast<t>(f)) == static_cast<t>(f);
     }
     static inline void AddFlag(NetPermissionFlags& flags, NetPermissionFlags f)
@@ -67,7 +74,7 @@ public:
     static inline void ClearFlag(NetPermissionFlags& flags, NetPermissionFlags f)
     {
         assert(f == NetPermissionFlags::Implicit);
-        using t = typename std::underlying_type<NetPermissionFlags>::type;
+        using t = std::underlying_type_t<NetPermissionFlags>;
         flags = static_cast<NetPermissionFlags>(static_cast<t>(flags) & ~static_cast<t>(f));
     }
 };
@@ -82,7 +89,7 @@ public:
 class NetWhitelistPermissions : public NetPermissions
 {
 public:
-    static bool TryParse(const std::string& str, NetWhitelistPermissions& output, bilingual_str& error);
+    static bool TryParse(const std::string& str, NetWhitelistPermissions& output, ConnectionDirection& output_connection_direction, bilingual_str& error);
     CSubNet m_subnet;
 };
 

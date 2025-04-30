@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,10 +6,10 @@
 #define BITCOIN_QT_GUIUTIL_H
 
 #include <consensus/amount.h>
-#include <fs.h>
 #include <net.h>
 #include <netaddress.h>
 #include <util/check.h>
+#include <util/fs.h>
 
 #include <QApplication>
 #include <QEvent>
@@ -123,6 +123,14 @@ namespace GUIUtil
      */
     QString getDefaultDataDirectory();
 
+    /**
+     * Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...).
+     *
+     * @param[in] filter Filter specification such as "Comma Separated Files (*.csv)"
+     * @return QString
+     */
+    QString ExtractFirstSuffixFromFilter(const QString& filter);
+
     /** Get save filename, mimics QFileDialog::getSaveFileName, except that it appends a default suffix
         when no suffix is provided by the user.
 
@@ -223,14 +231,17 @@ namespace GUIUtil
     /** Convert seconds into a QString with days, hours, mins, secs */
     QString formatDurationStr(std::chrono::seconds dur);
 
+    /** Convert peer connection time to a QString denominated in the most relevant unit. */
+    QString FormatPeerAge(std::chrono::seconds time_connected);
+
     /** Format CNodeStats.nServices bitmask into a user-readable string */
     QString formatServicesStr(quint64 mask);
 
     /** Format a CNodeStats.m_last_ping_time into a user-readable string or display N/A, if 0 */
     QString formatPingTime(std::chrono::microseconds ping_time);
 
-    /** Format a CNodeCombinedStats.nTimeOffset into a user-readable string */
-    QString formatTimeOffset(int64_t nTimeOffset);
+    /** Format a CNodeStateStats.time_offset into a user-readable string */
+    QString formatTimeOffset(int64_t time_offset);
 
     QString formatNiceTimeOffset(qint64 secs);
 
@@ -336,40 +347,6 @@ namespace GUIUtil
      * QPixmap* QLabel::pixmap() is deprecated since Qt 5.15.
      */
     bool HasPixmap(const QLabel* label);
-    QImage GetImage(const QLabel* label);
-
-    /**
-     * Splits the string into substrings wherever separator occurs, and returns
-     * the list of those strings. Empty strings do not appear in the result.
-     *
-     * QString::split() signature differs in different Qt versions:
-     *  - QString::SplitBehavior is deprecated since Qt 5.15
-     *  - Qt::SplitBehavior was introduced in Qt 5.14
-     * If {QString|Qt}::SkipEmptyParts behavior is required, use this
-     * function instead of QString::split().
-     */
-    template <typename SeparatorType>
-    QStringList SplitSkipEmptyParts(const QString& string, const SeparatorType& separator)
-    {
-    #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-        return string.split(separator, Qt::SkipEmptyParts);
-    #else
-        return string.split(separator, QString::SkipEmptyParts);
-    #endif
-    }
-
-    /**
-     * Queue a function to run in an object's event loop. This can be
-     * replaced by a call to the QMetaObject::invokeMethod functor overload after Qt 5.10, but
-     * for now use a QObject::connect for compatibility with older Qt versions, based on
-     * https://stackoverflow.com/questions/21646467/how-to-execute-a-functor-or-a-lambda-in-a-given-thread-in-qt-gcd-style
-     */
-    template <typename Fn>
-    void ObjectInvoke(QObject* object, Fn&& function, Qt::ConnectionType connection = Qt::QueuedConnection)
-    {
-        QObject source;
-        QObject::connect(&source, &QObject::destroyed, object, std::forward<Fn>(function), connection);
-    }
 
     /**
      * Replaces a plain text link with an HTML tagged one.
@@ -436,6 +413,9 @@ namespace GUIUtil
 #endif // Q_OS_ANDROID
         return false;
     }
+
+    QString WalletDisplayName(const std::string& name);
+    QString WalletDisplayName(const QString& name);
 
 } // namespace GUIUtil
 

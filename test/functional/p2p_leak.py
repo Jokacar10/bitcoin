@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Bitcoin Core developers
+# Copyright (c) 2017-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test message sending before handshake completion.
@@ -84,8 +84,8 @@ class NoVerackIdlePeer(LazyPeer):
     # list!
     def on_version(self, message):
         self.version_received = True
-        self.send_message(msg_ping())
-        self.send_message(msg_getaddr())
+        self.send_without_ping(msg_ping())
+        self.send_without_ping(msg_getaddr())
 
 
 class P2PVersionStore(P2PInterface):
@@ -121,7 +121,7 @@ class P2PLeakTest(BitcoinTestFramework):
         # Pre-wtxidRelay peer that sends a version but not a verack and does not support feature negotiation
         # messages which start at nVersion == 70016
         pre_wtxidrelay_peer = self.nodes[0].add_p2p_connection(NoVerackIdlePeer(), send_version=False, wait_for_verack=False)
-        pre_wtxidrelay_peer.send_message(self.create_old_version(70015))
+        pre_wtxidrelay_peer.send_without_ping(self.create_old_version(70015))
 
         # Wait until the peer gets the verack in response to the version. Though, don't wait for the node to receive the
         # verack, since the peer never sent one
@@ -137,6 +137,9 @@ class P2PLeakTest(BitcoinTestFramework):
 
         # Give the node enough time to possibly leak out a message
         time.sleep(PEER_TIMEOUT + 2)
+
+        self.log.info("Connect peer to ensure the net thread runs the disconnect logic at least once")
+        self.nodes[0].add_p2p_connection(P2PInterface())
 
         # Make sure only expected messages came in
         assert not no_version_idle_peer.unexpected_msg
@@ -169,10 +172,10 @@ class P2PLeakTest(BitcoinTestFramework):
 
         self.log.info('Check that old peers are disconnected')
         p2p_old_peer = self.nodes[0].add_p2p_connection(P2PInterface(), send_version=False, wait_for_verack=False)
-        with self.nodes[0].assert_debug_log(['peer=4 using obsolete version 31799; disconnecting']):
-            p2p_old_peer.send_message(self.create_old_version(31799))
+        with self.nodes[0].assert_debug_log(["using obsolete version 31799, disconnecting peer=5"]):
+            p2p_old_peer.send_without_ping(self.create_old_version(31799))
             p2p_old_peer.wait_for_disconnect()
 
 
 if __name__ == '__main__':
-    P2PLeakTest().main()
+    P2PLeakTest(__file__).main()

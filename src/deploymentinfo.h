@@ -7,6 +7,8 @@
 
 #include <consensus/params.h>
 
+#include <array>
+#include <optional>
 #include <string>
 
 struct VBDeploymentInfo {
@@ -16,7 +18,7 @@ struct VBDeploymentInfo {
     bool gbt_force;
 };
 
-extern const VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_BITS_DEPLOYMENTS];
+extern const std::array<VBDeploymentInfo,Consensus::MAX_VERSION_BITS_DEPLOYMENTS> VersionBitsDeploymentInfo;
 
 std::string DeploymentName(Consensus::BuriedDeployment dep);
 
@@ -25,5 +27,7 @@ inline std::string DeploymentName(Consensus::DeploymentPos pos)
     assert(Consensus::ValidDeployment(pos));
     return VersionBitsDeploymentInfo[pos].name;
 }
+
+std::optional<Consensus::BuriedDeployment> GetBuriedDeployment(const std::string_view deployment_name);
 
 #endif // BITCOIN_DEPLOYMENTINFO_H
