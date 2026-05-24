@@ -1,6 +1,8 @@
 Bitcoin Core integration/staging tree
 =====================================
 
+**Version:** 19.0 (6d84354f79179ff6ab6cf9da59ce1dc33809c8d3)
+
 https://bitcoincore.org
 
 For an immediately usable, binary version of the Bitcoin Core software, see
