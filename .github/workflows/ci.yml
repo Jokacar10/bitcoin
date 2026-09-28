@@ -141,8 +141,10 @@ jobs:
         name: Checkout
         uses: actions/checkout@v6
         with:
-          # Ensure the latest merged pull request state is used, even on re-runs.
-          ref: &CHECKOUT_REF_TMPL ${{ github.event_name == 'pull_request' && github.ref || '' }}
+          # Ensure the latest merged pull request state is used while the pull
+          # request is open, and fall back to the event SHA after GitHub removes
+          # the pull request merge ref on close.
+          ref: &CHECKOUT_REF_TMPL ${{ github.event_name == 'pull_request' && github.event.action != 'closed' && github.ref || github.sha }}
 
       - name: Clang version
         run: |
